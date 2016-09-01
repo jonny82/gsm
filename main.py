@@ -1,4 +1,6 @@
-# добавить подстановку предыдущих значений при вводе данных путевого листа
+# добавить редактирование данных месяца (внесения кол-ва ост. талонов и т.д.)
+# добавить изменение (последнего) дня
+# добавить удаление последнего дня
 
 import decimal
 import pickle
@@ -126,6 +128,7 @@ class MonthRecord:
                  fuel_natural_begin,       # начальное количество бензина
                  fuel_ticket_begin,        # начальное кол-во бензина талонами
                  fuel_month_norm,          # норма расхода на месяц (250 л.)
+                 date_end=None,            # последняя дата
                  day_records=None,         # список записей путевых листов
                  waybill_number_end=None,  # последний номер путевого листа
                  speedometer_end=None,     # последние показания спидометра
@@ -140,6 +143,11 @@ class MonthRecord:
         self.fuel_natural_begin = fuel_natural_begin
         self.fuel_ticket_begin = fuel_ticket_begin
         self.fuel_month_norm = fuel_month_norm
+
+        if date_end is None:
+            self.date_end = self.date_begin
+        else:
+            self.date_end = date_end
 
         if day_records is None:
             self.day_records = []
@@ -196,6 +204,7 @@ class MonthRecord:
         print("начальный номер путевого листа:", self.waybill_number_begin)
         print("итоговый номер путевого листа:", self.waybill_number_end)
         print("начальные показания спидометра:", self.speedometer_begin)
+        print("последняя дата:", self.date_end)
         print("итоговые показания спидометра:", self.speedometer_end)
         print("начальное количество бензина:", self.fuel_natural_begin)
         print("итоговое количество бензина:", self.fuel_natural_end)
@@ -211,23 +220,51 @@ class MonthRecord:
         print("\nНовый день.\n")
 
         if len(self.day_records):
-            temp = self.waybill_number_begin
+            temp = self.date_end + datetime.timedelta(days=1)
         else:
-            temp = self.waybill_number_end + 1
-        temp2 = input("дата путевого листа/дня (Enter для значения", str(temp), "): ")
+            temp = self.date_begin
+        temp2 = input("дата путевого листа/дня (Enter для значения [" + str(temp) + "]): ")
         if temp2 == "":
             date_waybill = temp
         else:
-            date_waybill = temp2
             # преобразование даты путевого листа в тип datetime
-            date_waybill = datetime.datetime.strptime(date_waybill, "%d.%m.%Y").date()
+            date_waybill = datetime.datetime.strptime(temp2, "%d.%m.%Y").date()
 
+        if len(self.day_records):
+            temp = self.waybill_number_end + 1
+        else:
+            temp = self.waybill_number_begin
+        temp2 = input("номер путевого листа (Enter для значения [" + str(temp) + "]): ")
+        if temp2 == "":
+            number_waybill = temp
+        else:
+            number_waybill = int(temp2)
 
-        number_waybill = int(input("номер путевого листа: "))
-        speedometer_begin = int(input("показания спидометра в начале дня: "))
+        temp = self.speedometer_end
+        temp2 = input("показания спидометра в начале дня (Enter для значения [" + str(temp) + "]): ")
+        if temp2 == "":
+            speedometer_begin = temp
+        else:
+            speedometer_begin = int(temp2)
+
         speedometer_end = int(input("показания спидометра в конце дня: "))
-        fuel_begin = decimal.Decimal(input("количество бензина в начале дня: "))
-        fuel_added = decimal.Decimal(input("количество бензина заправлено: "))
+
+        if len(self.day_records):
+            temp = self.day_records[-1].fuel_end
+        else:
+            temp = self.fuel_natural_begin
+        temp2 = input("количество бензина в начале дня (Enter для значения [" + str(temp) + "]: ")
+        if temp2 == "":
+            fuel_begin = temp
+        else:
+            fuel_begin = decimal.Decimal(temp2)
+
+        temp = decimal.Decimal(0)
+        temp2 = input("количество бензина заправлено (Enter для значения [" + str(temp) + "]: ")
+        if temp2 == "":
+            fuel_added = temp
+        else:
+            fuel_added = decimal.Decimal(temp2)
 
         cur_day = DayRecord(
             date_waybill,
@@ -239,6 +276,7 @@ class MonthRecord:
 
         cur_day.print_day_record()
 
+        self.date_end = cur_day.date_waybill
         self.day_records.append(cur_day)
         self.waybill_number_end = cur_day.number_waybill
         self.speedometer_end = cur_day.speedometer_end
